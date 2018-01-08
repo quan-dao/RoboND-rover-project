@@ -109,7 +109,7 @@ def perception_step(Rover):
                   [Rover.img.shape[1]/2 - dst_size, Rover.img.shape[0] - 2*dst_size - bottom_offset],
                   ])
     # 2) Apply perspective transform
-     warped = perspect_transform(Rover.img, source, destination)
+    warped = perspect_transform(Rover.img, source, destination)
     # 3) Apply color threshold to identify navigable terrain/obstacles/rock samples
     nav_terrain = color_thresh(warped)
     obstacle = cv2.bitwise_not(nav_terrain)
