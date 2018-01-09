@@ -44,6 +44,11 @@ def decision_step(Rover):
                             Rover.steer = np.clip(np.mean(right_mean_ang * 180/np.pi), -15, 15)
                     else:
                         Rover.steer = np.clip(nav_angles_mean * 180/np.pi, -15, 15)
+                # Check if rover circle around
+                if np.abs( Rover.steer - Rover.steer_prev) < 1 and np.abs(Rover.steer_prev) > 14:
+                    Rover.steer_unchange_cnt += 1
+                else:
+                    Rover.steer_unchange_cnt = 0
             # If there's a lack of navigable terrain pixels then go to 'stop' mode
             elif len(Rover.nav_angles) < Rover.stop_forward:
                     # Set mode to "stop" and hit the brakes!
@@ -52,7 +57,8 @@ def decision_step(Rover):
                     Rover.brake = Rover.brake_set
                     Rover.steer = 0
                     Rover.mode = 'stop'
-                    Rover.steer_favor_left = not Rover.steer_favor_left
+                    if Rover.steer_unchange_cnt < (16 * 3):
+                        Rover.steer_favor_left = not Rover.steer_favor_left
 
         # If we're already in "stop" mode then make different decisions
         elif Rover.mode == 'stop':

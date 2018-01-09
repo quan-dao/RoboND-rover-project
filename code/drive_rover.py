@@ -49,7 +49,7 @@ class RoverState():
         self.steer = 0 # Current steering angle
         self.steer_prev = 0 # previous steering angle
         self.steer_favor_left = True
-        self.mode_prev = 'forward'
+        self.steer_unchange_cnt = 0
         self.throttle = 0 # Current throttle value
         self.brake = 0 # Current brake value
         self.nav_angles = None # Angles of navigable terrain pixels

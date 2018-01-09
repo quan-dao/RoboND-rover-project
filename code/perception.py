@@ -142,6 +142,11 @@ def perception_step(Rover):
         rock_x_world, rock_y_world = pix_to_world(rock_xpix_rov, rock_ypix_rov, Rover.pos[0], Rover.pos[1],
                                                 Rover.yaw, 200, 10)
         Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
+        # check if rover is near rocks
+        # rov_rock_dist, rov_rock_angle = to_polar_coords(rock_xpix_rov, rock_ypix_rov)
+        # if rov_rock_dist is not None:
+        #     if np.min(rov_rock_dist) < 10:
+        #         Rover.mode = 'stop'
     # 8) Convert rover-centric pixel positions to polar coordinates
     rov_dist, rov_angle = to_polar_coords(nav_xpix_rov, nav_ypix_rov)
     # Update Rover pixel distances and angles
