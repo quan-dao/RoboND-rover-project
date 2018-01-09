@@ -26,8 +26,12 @@ def decision_step(Rover):
                 Rover.brake = 0
                 # calculate steering angle
                 nav_ang_mean = np.mean(Rover.nav_angles)
-                # Check if the rover is circleing around
+                # Check if the rover is circling around
                 if np.abs(nav_ang_mean * 180/np.pi - Rover.steer_prev) < 2:
+                    Rover.steer_unchange_cnt += 1
+                else:
+                    Rover.steer_unchange_cnt = 0 # not circling then reset
+                if Rover.steer_unchange_cnt > (16 * 3) # circling for more than 3 seconds 
                     if Rover.steer_prev < 0: # rover is turning right
                         left_nav_ang = Rover.nav_angles > nav_ang_mean
                         Rover.steer = np.clip(np.mean(left_nav_ang * 180/np.pi), -15, 15)
