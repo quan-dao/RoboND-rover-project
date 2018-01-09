@@ -24,22 +24,38 @@ def decision_step(Rover):
                 else: # Else coast
                     Rover.throttle = 0
                 Rover.brake = 0
-                # calculate steering angle
-                nav_ang_mean = np.mean(Rover.nav_angles)
-                # Check if the rover is circling around
-                if np.abs(nav_ang_mean * 180/np.pi - Rover.steer_prev) < 2:
+
+                if Rover.steer_flag_unchange:
+                    Rover.steer = Rover.steer_prev
                     Rover.steer_unchange_cnt += 1
+                    if Rover.steer_unchange_cnt > (16 * 2):
+                        Rover.steer_flag_unchange = False
+                        Rover.steer_unchange_cnt = 0
                 else:
-                    Rover.steer_unchange_cnt = 0 # not circling then reset
-                if Rover.steer_unchange_cnt > (16 * 3) # circling for more than 3 seconds 
-                    if Rover.steer_prev < 0: # rover is turning right
-                        left_nav_ang = Rover.nav_angles > nav_ang_mean
-                        Rover.steer = np.clip(np.mean(left_nav_ang * 180/np.pi), -15, 15)
-                    else: # rover is turning left
-                        right_nav_ang = Rover.nav_angles < nav_ang_mean
-                        Rover.steer = np.clip(np.mean(right_nav_ang * 180/np.pi), -15, 15)
-                else:
-                    Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
+                    # calculate steering angle
+                    nav_ang_mean = np.mean(Rover.nav_angles)
+                    # Check if rover is going to turn or not
+                    if np.abs(Rover.steer_prev) > 13: # rover was going to turn
+                        not_go_straight = True
+                    else:
+                        not_go_straight = False # rover is going to go straight forward
+                    # Check if the rover is circling around
+                    if np.abs(np.clip(nav_ang_mean * 180/np.pi, -15, 15) - Rover.steer_prev) < 2 and not_go_straight:
+                        Rover.steer_unchange_cnt += 1
+                    else:
+                        Rover.steer_unchange_cnt = 0 # not circling then reset
+                    # Check how many times rover circling
+                    if Rover.steer_unchange_cnt > (16 * 3): # circling for more than 3 seconds
+                        if Rover.steer_prev < 0: # rover is turning right
+                            left_nav_ang = Rover.nav_angles[Rover.nav_angles > nav_ang_mean]
+                            Rover.steer = np.clip(np.mean(left_nav_ang * 180/np.pi), -15, 15)
+                        else: # rover is turning left
+                            right_nav_ang = Rover.nav_angles[Rover.nav_angles < nav_ang_mean]
+                            Rover.steer = np.clip(np.mean(right_nav_ang * 180/np.pi), -15, 15)
+                        Rover.steer_flag_unchange = True
+                    else:
+                        Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
+
             # If there's a lack of navigable terrain pixels then go to 'stop' mode
             elif len(Rover.nav_angles) < Rover.stop_forward:
                     # Set mode to "stop" and hit the brakes!
