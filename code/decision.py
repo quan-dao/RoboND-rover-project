@@ -77,6 +77,9 @@ def decision_step(Rover):
         Rover.steer = 0
         Rover.brake = 0
 
+    # Update value of Rover.steer_prev for the next loop
+    Rover.steer_prev = Rover.steer
+
     # If in a state where want to pickup a rock send pickup command
     if Rover.near_sample and Rover.vel == 0 and not Rover.picking_up:
         Rover.send_pickup = True
