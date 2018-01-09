@@ -24,13 +24,16 @@ def decision_step(Rover):
                 else: # Else coast
                     Rover.throttle = 0
                 Rover.brake = 0
-                nav_angles_mean = np.mean(Rover.nav_angles)
-                if Rover.steer_favor_left:
-                    left_nav_ang = Rover.nav_angles[Rover.nav_angles > (nav_angles_mean - 5 * np.pi/180)]
-                    Rover.steer = np.clip(np.mean(left_nav_ang * 180/np.pi), -15, 15)
+                if len(Rover.nav_angles) >= Rover.go_forward_side_favor: # check for cross road
+                    nav_angles_mean = np.mean(Rover.nav_angles)
+                    if Rover.steer_favor_left:
+                        left_nav_ang = Rover.nav_angles[Rover.nav_angles > (nav_angles_mean - 5 * np.pi/180)]
+                        Rover.steer = np.clip(np.mean(left_nav_ang * 180/np.pi), -15, 15)
+                    else:
+                        right_nav_ang = Rover.nav_angles[Rover.nav_angles < (nav_angles_mean + 5 * np.pi/180)]
+                        Rover.steer = np.clip(np.mean(right_nav_ang * 180/np.pi), -15, 15)
                 else:
-                    right_nav_ang = Rover.nav_angles[Rover.nav_angles < (nav_angles_mean + 5 * np.pi/180)]
-                    Rover.steer = np.clip(np.mean(right_nav_ang * 180/np.pi), -15, 15)
+                    Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
 
             # If there's a lack of navigable terrain pixels then go to 'stop' mode
             elif len(Rover.nav_angles) < Rover.stop_forward:

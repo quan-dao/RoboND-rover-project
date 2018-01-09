@@ -48,7 +48,6 @@ class RoverState():
         self.vel = None # Current velocity
         self.steer = 0 # Current steering angle
         self.steer_prev = 0 # previous steering angle
-        self.steer_unchange_cnt = 0 # count how many time steer angle does not change
         self.steer_favor_left = True
         self.mode_prev = 'forward'
         self.throttle = 0 # Current throttle value
@@ -65,6 +64,7 @@ class RoverState():
         # get creative in adding new fields or modifying these!
         self.stop_forward = 50 # Threshold to initiate stopping
         self.go_forward = 500 # Threshold to go forward again
+        self.go_forward_side_favor = 1000
         self.max_vel = 2 # Maximum velocity (meters/second)
         # Image output from perception step
         # Update this image to display your intermediate analysis steps
