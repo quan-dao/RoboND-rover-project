@@ -37,10 +37,10 @@ def decision_step(Rover):
                 else:
                     if np.abs(max(left_nav_ang) - min(right_nav_ang)) > 30 * np.pi/180:
                         if Rover.steer_favor_left:
-                            left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean]
+                            left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean - 3 * np.pi/180]
                             Rover.steer = np.clip(np.mean(left_mean_ang * 180/np.pi), -15, 15)
                         else:
-                            right_mean_ang = Rover.nav_angles[Rover.nav_angles < nav_angles_mean]
+                            right_mean_ang = Rover.nav_angles[Rover.nav_angles < nav_angles_mean + 3 * np.pi/180]
                             Rover.steer = np.clip(np.mean(right_mean_ang * 180/np.pi), -15, 15)
                     else:
                         Rover.steer = np.clip(nav_angles_mean * 180/np.pi, -15, 15)
