@@ -93,8 +93,8 @@ def perspect_transform(img, src, dst):
 
     return warped
 
-# Find the open part of the Rover.nav_angles for the decision step        
-def find_nav_angles(dist, angles):
+# Find the open part of the Rover.nav_angles for the decision step
+def find_open_part(dist, angles):
     # 1.st dectect the discontinuous in the field of view
     # 2.nd if there are any discont, choose the open side othe field of view, else the whole field is open
     # Return the open side of the field of view
@@ -102,88 +102,91 @@ def find_nav_angles(dist, angles):
     # sort the angles array in the increasing order (the first one the smallest)
     sort_index = np.argsort(angles) # extract the sort result in the form of the index of angles array
     sorted_angles = angles[sort_index] # arrange the angles array with the index above
-    sorted_dist = dist[sort_index] # arrange the dist array using the order of the angles array
-    # there are many dist have relatively equal angles
-    # next to find out with a given value of angle, what is the maximum value of distances having this angle
-    threhold = 3 * np.pi/180 # (rad), criterion to for 2 angles to be considered the same
-    max_dist_resp_ang = [] # maximum distance with a given angles (there are dist have the same angles)
-    base_ang_array = [] # array to store angle having different distance
-    i_start = 0 # looping variable
-    i_end = 0 # looping variable
-    base_ang = sorted_angles[i_start]
-    while i_end < len(sorted_angles):
-        if np.abs(sorted_angles[i_end] - base_ang) < threhold: # check the relatively equal criterion
-            i_end += 1
-        else:
-            max_dist_resp_ang.append(max(sorted_dist[i_start:i_end]))
-            base_ang_array.append(base_ang)
-            # update looping variable
-            i_start = i_end
-            i_end = i_start + 1
-            base_ang = sorted_angles[i_start]
-
-    if i_start == len(sorted_angles) - 1: # i_start reach the end of the angles array, so i_end is out of range
-        max_dist_resp_ang.append(sorted_dist[i_start])
-        base_ang_array.append(sorted_angles[i_start])
-    # Detect the local maxima (maximum & minimum) of the graph (base angles, maximum dist respect to base angles)
-    n = len(max_dist_resp_ang)
-    maxima_dist_value = []
-    maxima_dist_base_ang = []
-    for i in range(1, n-1):
-        flag_max = (max_dist_resp_ang[i] > max_dist_resp_ang[i - 1]) \
-                    & (max_dist_resp_ang[i] > max_dist_resp_ang[i + 1]) # condition of maximum
-        flag_min = (max_dist_resp_ang[i] < max_dist_resp_ang[i - 1]) \
-                    & (max_dist_resp_ang[i] < max_dist_resp_ang[i + 1]) # condition of minimum
-        if flag_max or flag_min:
-            maxima_dist_value.append(max_dist_resp_ang[i])
-            maxima_dist_base_ang.append(base_ang_array[i])
-    # Detect the discontinuous points, i.e. the rapid change in the value of local maxima
-    maxima_threhold = 30 # condition detect a discontinuous
-    cut_off_ang = [] # store the value of cut off angle
-    for i in range(1, len(maxima_dist_value)):
-        if np.abs(maxima_dist_value[i] - maxima_dist_value[i - 1]) > maxima_threhold:
-            cut_off_ang.append(maxima_dist_base_ang[i])
-    # Check the number of discont points, then choose the approriate part of the field
-    n_cut_off = len(cut_off_ang)
-    if n_cut_off == 1: # one distcont in the field of view
-        ind_sorted_angles = 0
-        while ind_sorted_angles < len(sorted_angles):
-            if sorted_angles[ind_sorted_angles] < 0.5:
-                ind_sorted_angles += 1
+    if len(sorted_angles) < 1:
+        return dist, angles
+    else:
+        sorted_dist = dist[sort_index] # arrange the dist array using the order of the angles array
+        # there are many dist have relatively equal angles
+        # next to find out with a given value of angle, what is the maximum value of distances having this angle
+        threhold = 3 * np.pi/180 # (rad), criterion to for 2 angles to be considered the same
+        max_dist_resp_ang = [] # maximum distance with a given angles (there are dist have the same angles)
+        base_ang_array = [] # array to store angle having different distance
+        i_start = 0 # looping variable
+        i_end = 0 # looping variable
+        base_ang = sorted_angles[i_start]
+        while i_end < len(sorted_angles):
+            if np.abs(sorted_angles[i_end] - base_ang) < threhold: # check the relatively equal criterion
+                i_end += 1
             else:
-                break;
-        # Find the open side of the field of view, i.e. the bigger part of the field of view
-        if ind_sorted_angles > (len(sorted_angles) / 2):
-            open_angles = sorted_angles[:ind_sorted_angles]
-            open_dist = sorted_dist[:ind_sorted_angles]
-        else:
-            open_angles = sorted_angles[ind_sorted_angles:]
-            open_dist = sorted_dist[ind_sorted_angles:]
-    elif n_cut_off > 1: # more than 1 discont, may be cannot be more than 2
-        # Divide the field of view into 3 parts
-        left_part = sorted_angles[sorted_angles <= min(cut_off_ang)]
-        right_part = sorted_angles[sorted_angles >= max(cut_off_ang)]
-        mid_part = sorted_angles[(sorted_angles > min(cut_off_ang)) \
-                                 & (sorted_angles < max(cut_off_ang))]
-        # Find the biggest part
-        n_left = len(left_part)
-        n_right = len(right_part)
-        n_mid = len(mid_part)
-        if n_left == max(n_left, n_right, n_mid):
-            open_angles = left_part
-            open_dist = sorted_dist[sorted_angles <= min(cut_off_ang)]
-        elif n_right == max(n_left, n_right, n_mid):
-            open_angles = right_part
-            open_dist = sorted_dist[sorted_angles >= max(cut_off_ang)]
-        else:
-            open_angles = mid_part
-            open_dist = sorted_dist[(sorted_angles > min(cut_off_ang))
-                                 & (sorted_angles < max(cut_off_ang))]
-    else: # there is no discont, so the whole field is open
-        open_angles = sorted_angles
-        open_dist = sorted_dist
+                max_dist_resp_ang.append(max(sorted_dist[i_start:i_end]))
+                base_ang_array.append(base_ang)
+                # update looping variable
+                i_start = i_end
+                i_end = i_start + 1
+                base_ang = sorted_angles[i_start]
 
-    return open_dist, open_angles
+        if i_start == len(sorted_angles) - 1: # i_start reach the end of the angles array, so i_end is out of range
+            max_dist_resp_ang.append(sorted_dist[i_start])
+            base_ang_array.append(sorted_angles[i_start])
+        # Detect the local maxima (maximum & minimum) of the graph (base angles, maximum dist respect to base angles)
+        n = len(max_dist_resp_ang)
+        maxima_dist_value = []
+        maxima_dist_base_ang = []
+        for i in range(1, n-1):
+            flag_max = (max_dist_resp_ang[i] > max_dist_resp_ang[i - 1]) \
+                        & (max_dist_resp_ang[i] > max_dist_resp_ang[i + 1]) # condition of maximum
+            flag_min = (max_dist_resp_ang[i] < max_dist_resp_ang[i - 1]) \
+                        & (max_dist_resp_ang[i] < max_dist_resp_ang[i + 1]) # condition of minimum
+            if flag_max or flag_min:
+                maxima_dist_value.append(max_dist_resp_ang[i])
+                maxima_dist_base_ang.append(base_ang_array[i])
+        # Detect the discontinuous points, i.e. the rapid change in the value of local maxima
+        maxima_threhold = 30 # condition detect a discontinuous
+        cut_off_ang = [] # store the value of cut off angle
+        for i in range(1, len(maxima_dist_value)):
+            if np.abs(maxima_dist_value[i] - maxima_dist_value[i - 1]) > maxima_threhold:
+                cut_off_ang.append(maxima_dist_base_ang[i])
+        # Check the number of discont points, then choose the approriate part of the field
+        n_cut_off = len(cut_off_ang)
+        if n_cut_off == 1: # one distcont in the field of view
+            ind_sorted_angles = 0
+            while ind_sorted_angles < len(sorted_angles):
+                if sorted_angles[ind_sorted_angles] < 0.5:
+                    ind_sorted_angles += 1
+                else:
+                    break;
+            # Find the open side of the field of view, i.e. the bigger part of the field of view
+            if ind_sorted_angles > (len(sorted_angles) / 2):
+                open_angles = sorted_angles[:ind_sorted_angles]
+                open_dist = sorted_dist[:ind_sorted_angles]
+            else:
+                open_angles = sorted_angles[ind_sorted_angles:]
+                open_dist = sorted_dist[ind_sorted_angles:]
+        elif n_cut_off > 1: # more than 1 discont, may be cannot be more than 2
+            # Divide the field of view into 3 parts
+            left_part = sorted_angles[sorted_angles <= min(cut_off_ang)]
+            right_part = sorted_angles[sorted_angles >= max(cut_off_ang)]
+            mid_part = sorted_angles[(sorted_angles > min(cut_off_ang)) \
+                                     & (sorted_angles < max(cut_off_ang))]
+            # Find the biggest part
+            n_left = len(left_part)
+            n_right = len(right_part)
+            n_mid = len(mid_part)
+            if n_left == max(n_left, n_right, n_mid):
+                open_angles = left_part
+                open_dist = sorted_dist[sorted_angles <= min(cut_off_ang)]
+            elif n_right == max(n_left, n_right, n_mid):
+                open_angles = right_part
+                open_dist = sorted_dist[sorted_angles >= max(cut_off_ang)]
+            else:
+                open_angles = mid_part
+                open_dist = sorted_dist[(sorted_angles > min(cut_off_ang))
+                                     & (sorted_angles < max(cut_off_ang))]
+        else: # there is no discont, so the whole field is open
+            open_angles = sorted_angles
+            open_dist = sorted_dist
+
+        return open_dist, open_angles
 
 # Apply the above functions in succession and update the Rover state accordingly
 def perception_step(Rover):
@@ -224,28 +227,39 @@ def perception_step(Rover):
         # Example: Rover.worldmap[obstacle_y_world, obstacle_x_world, 0] += 1
         #          Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
         #          Rover.worldmap[navigable_y_world, navigable_x_world, 2] += 1
-    Rover.worldmap[nav_y_world, nav_x_world, 2] += 1
-    Rover.worldmap[obs_y_world, obs_x_world, 0] += 1
-    # Check for rock
-    yrock, xrock = rock.nonzero()
-    if yrock is not None:  # a rough guess of the number of white pixels if there is a rock
-        rock_xpix_rov, rock_ypix_rov = rover_coords(rock)
-        rock_x_world, rock_y_world = pix_to_world(rock_xpix_rov, rock_ypix_rov, Rover.pos[0], Rover.pos[1],
-                                                Rover.yaw, 200, 10)
-        Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
+    p_r_angles_threhold = 1 # deg, threshold of pitch & roll for perspect_transform to be considered accurate
+    if (np.abs(Rover.pitch) < p_r_angles_threhold) or (np.abs(Rover.pitch - 360) < p_r_angles_threhold):
+        flag_pitch_ok = True
+    else:
+        flag_pitch_ok = False
+    if (np.abs(Rover.roll) < p_r_angles_threhold) or (np.abs(Rover.roll - 360) < p_r_angles_threhold):
+        flag_roll_ok = True
+    else:
+        flag_roll_ok = False
+    if flag_pitch_ok & flag_roll_ok:
+        Rover.worldmap[nav_y_world, nav_x_world, 2] += 1
+        Rover.worldmap[obs_y_world, obs_x_world, 0] += 1
+        # Check for rock
+        yrock, xrock = rock.nonzero()
+        if yrock is not None:  # a rough guess of the number of white pixels if there is a rock
+            rock_xpix_rov, rock_ypix_rov = rover_coords(rock)
+            rock_x_world, rock_y_world = pix_to_world(rock_xpix_rov, rock_ypix_rov, Rover.pos[0], Rover.pos[1],
+                                                    Rover.yaw, 200, 10)
+            Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
         # check if rover is near rocks
         # rov_rock_dist, rov_rock_angle = to_polar_coords(rock_xpix_rov, rock_ypix_rov)
         # if rov_rock_dist is not None:
         #     if np.min(rov_rock_dist) < 10:
         #         Rover.mode = 'stop'
-    # 8) Convert rover-centric pixel positions to polar coordinates
-    rov_dist, rov_angle = to_polar_coords(nav_xpix_rov, nav_ypix_rov)
-    # Update Rover pixel distances and angles
-        # Rover.nav_dists = rover_centric_pixel_distances
-        # Rover.nav_angles = rover_centric_angles
-    Rover.nav_dists = rov_dist  # this is an array
-    Rover.nav_angles = rov_angle
-
-
+        # 8) Convert rover-centric pixel positions to polar coordinates
+        rov_dists, rov_angles = to_polar_coords(nav_xpix_rov, nav_ypix_rov)
+        # Update Rover pixel distances and angles
+            # Rover.nav_dists = rover_centric_pixel_distances
+            # Rover.nav_angles = rover_centric_angles
+        # Find open part of the rover's field of view
+        Rover.nav_dists, Rover.nav_angles = find_open_part(rov_dists, rov_angles)
+    else:
+        Rover.nav_dists = None
+        Rover.nav_angles = None
 
     return Rover
