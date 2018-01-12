@@ -64,6 +64,7 @@ class RoverState():
         # get creative in adding new fields or modifying these!
         self.stop_forward = 400 # pixel
         self.go_forward = 700
+        self.min_dist_ahead_thres = 3 # pixel
         self.max_vel = 2 # Maximum velocity (meters/second)
         # Image output from perception step
         # Update this image to display your intermediate analysis steps

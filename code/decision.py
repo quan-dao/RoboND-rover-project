@@ -22,7 +22,7 @@ def decision_step(Rover):
         # Check for Rover.mode status
         if Rover.mode == 'forward':
             # check the stop criterion
-            if nav_angles_margin > Rover.stop_forward:
+            if (nav_angles_margin > Rover.stop_forward):
                 # If the above condition is true, then the terrain looks good
                 # If mode is forward, navigable terrain looks good
                 # and velocity is below max, then throttle
@@ -35,10 +35,15 @@ def decision_step(Rover):
                 # use wall crawling policy to design steering angle
                 nav_angles_mean = np.mean(Rover.nav_angles)
                 left_right_margin = Rover.nav_angles[-1] - Rover.nav_angles[0]
-                if left_right_margin > (20 * np.pi/180):
+                if left_right_margin > (30 * np.pi/180):
                     if Rover.steer_favor_left:
                         left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean - 3.5 * np.pi/180]
                         Rover.steer = np.clip(np.mean(left_mean_ang * 180/np.pi), -15, 15)
+                        # Check if there are any obstacle ahead if move with Rover.steer angle
+                        dists_around_steer = np.abs(Rover.nav_angles - Rover.steer) < (2 * np.pi/180)
+                        mean_dist_ahead = np.mean(Rover.nav_dists[dists_around_steer])
+                        if mean_dist_ahead < Rover.min_dist_ahead_thres:
+                            Rover.mode = 'stop'
                     else:
                         right_mean_ang = Rover.nav_angles[Rover.nav_angles < nav_angles_mean + 3.5 * np.pi/180]
                         Rover.steer = np.clip(np.mean(right_mean_ang * 180/np.pi), -15, 15)
