@@ -62,7 +62,7 @@ class RoverState():
         # of navigable terrain pixels.  This is a very crude form of knowing
         # when you can keep going and when you should stop.  Feel free to
         # get creative in adding new fields or modifying these!
-        self.stop_forward = 400 # pixel
+        self.stop_forward = 300 # pixel
         self.go_forward = 700
         self.min_dist_ahead_thres = 3 # pixel
         self.max_vel = 2 # Maximum velocity (meters/second)
