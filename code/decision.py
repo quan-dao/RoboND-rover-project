@@ -54,7 +54,8 @@ def decision_step(Rover):
                     # Set mode to "stop" and hit the brakes!
                     Rover.throttle = 0
                     # Set brake to stored brake value
-                    Rover.brake = Rover.brake_set
+                    if Rover.brake < Rover.brake_set:
+                        Rover.brake += 0.3
                     Rover.steer = 0
                     Rover.mode = 'stop'
 
@@ -63,7 +64,8 @@ def decision_step(Rover):
             # If we're in stop mode but still moving keep braking
             if Rover.vel > 0.2:
                 Rover.throttle = 0
-                Rover.brake = Rover.brake_set
+                if Rover.brake < Rover.brake_set:
+                    Rover.brake += 0.3
                 Rover.steer = 0
             # If we're not moving (vel < 0.2) then do something else
             else:
@@ -73,7 +75,7 @@ def decision_step(Rover):
                     # Release the brake to allow turning
                     Rover.brake = 0
                     # Turn range is +/- 15 degrees, when stopped the next line will induce 4-wheel turning
-                    Rover.steer = 15 * sign(Rover.steer_prev) # Could be more clever here about which way to turn
+                    Rover.steer = -15 # Could be more clever here about which way to turn
                 # If we're stopped but see sufficient navigable terrain in front then go!
                 else:
                     # Set throttle back to stored value
