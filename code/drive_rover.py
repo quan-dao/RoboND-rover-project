@@ -62,8 +62,7 @@ class RoverState():
         # of navigable terrain pixels.  This is a very crude form of knowing
         # when you can keep going and when you should stop.  Feel free to
         # get creative in adding new fields or modifying these!
-        self.nav_angles_thres = 20 # deg
-        self.nav_dists_thres = 1.5 # m
+        self.nav_angles_thres = 10 # deg
         self.max_vel = 2 # Maximum velocity (meters/second)
         # Image output from perception step
         # Update this image to display your intermediate analysis steps
