@@ -103,7 +103,7 @@ def find_open_part(dist, angles):
     sort_index = np.argsort(angles) # extract the sort result in the form of the index of angles array
     sorted_angles = angles[sort_index] # arrange the angles array with the index above
     if len(sorted_angles) < 1:
-        return dist, angles
+        return dist, angles, False
     else:
         sorted_dist = dist[sort_index] # arrange the dist array using the order of the angles array
         # there are many dist have relatively equal angles
@@ -149,6 +149,7 @@ def find_open_part(dist, angles):
         # Check the number of discont points, then choose the approriate part of the field
         n_cut_off = len(cut_off_ang)
         if n_cut_off == 1: # one distcont in the field of view
+            flag_obst_in_view = True
             ind_sorted_angles = 0
             while ind_sorted_angles < len(sorted_angles):
                 if sorted_angles[ind_sorted_angles] < 0.5:
@@ -163,6 +164,7 @@ def find_open_part(dist, angles):
                 open_angles = sorted_angles[ind_sorted_angles:]
                 open_dist = sorted_dist[ind_sorted_angles:]
         elif n_cut_off > 1: # more than 1 discont, may be cannot be more than 2
+            flag_obst_in_view = False
             # Divide the field of view into 3 parts
             left_part = sorted_angles[sorted_angles <= min(cut_off_ang)]
             right_part = sorted_angles[sorted_angles >= max(cut_off_ang)]
@@ -183,10 +185,11 @@ def find_open_part(dist, angles):
                 open_dist = sorted_dist[(sorted_angles > min(cut_off_ang))
                                      & (sorted_angles < max(cut_off_ang))]
         else: # there is no discont, so the whole field is open
+            flag_obst_in_view = False
             open_angles = sorted_angles
             open_dist = sorted_dist
 
-        return open_dist, open_angles
+        return open_dist, open_angles, flag_obst_in_view
 
 # Apply the above functions in succession and update the Rover state accordingly
 def perception_step(Rover):
@@ -257,9 +260,10 @@ def perception_step(Rover):
             # Rover.nav_dists = rover_centric_pixel_distances
             # Rover.nav_angles = rover_centric_angles
         # Find open part of the rover's field of view
-        Rover.nav_dists, Rover.nav_angles = find_open_part(rov_dists, rov_angles)
+        Rover.nav_dists, Rover.nav_angles, Rover.obst_in_view = find_open_part(rov_dists, rov_angles)
     else:
         Rover.nav_dists = None
         Rover.nav_angles = None
+        Rover.obst_in_view = False
 
     return Rover

@@ -34,26 +34,20 @@ def decision_step(Rover):
                 Rover.brake = 0
                 # use wall crawling policy to design steering angle
                 nav_angles_mean = np.mean(Rover.nav_angles)
-                left_right_margin = Rover.nav_angles[-1] - Rover.nav_angles[0]
-                if left_right_margin > (30 * np.pi/180):
+                if not Rover.obst_in_view:
                     if Rover.steer_favor_left:
-                        left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean - 3.5 * np.pi/180]
+                        left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean - 2 * np.pi/180]
                         Rover.steer = np.clip(np.mean(left_mean_ang * 180/np.pi), -15, 15)
-                        # Check if there are any obstacle ahead if move with Rover.steer angle
-                        dists_around_steer = np.abs(Rover.nav_angles - Rover.steer) < (2 * np.pi/180)
-                        mean_dist_ahead = np.mean(Rover.nav_dists[dists_around_steer])
-                        if mean_dist_ahead < Rover.min_dist_ahead_thres:
-                            Rover.mode = 'stop'
                     else:
-                        right_mean_ang = Rover.nav_angles[Rover.nav_angles < nav_angles_mean + 3.5 * np.pi/180]
+                        right_mean_ang = Rover.nav_angles[Rover.nav_angles < nav_angles_mean + 2 * np.pi/180]
                         Rover.steer = np.clip(np.mean(right_mean_ang * 180/np.pi), -15, 15)
+                    # Check if there are any obstacle ahead if move with Rover.steer angle
+                    dists_around_steer = np.abs(Rover.nav_angles - Rover.steer) < (2 * np.pi/180)
+                    mean_dist_ahead = np.mean(Rover.nav_dists[dists_around_steer])
+                    if mean_dist_ahead < Rover.min_dist_ahead_thres:
+                        Rover.mode = 'stop'
                 else:
                     Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
-                # Check if rover circle around
-                if np.abs( Rover.steer - Rover.steer_prev) < 1 and np.abs(Rover.steer_prev) > 14:
-                    Rover.steer_unchange_cnt += 1
-                else:
-                    Rover.steer_unchange_cnt = 0
             # If there's a lack of nav_angles_margin or nav_dists_mean, then go to 'stop' mode
             else:
                     # Set mode to "stop" and hit the brakes!
