@@ -28,6 +28,8 @@
 [image4]: ./write-up-img/second_threshold_img.png
 [image5]: ./write-up-img/rock_sample.png
 [image6]: ./write-up-img/rock_img.png
+[image7]: ./write-up-img/fov_normal_2.png
+[image8]: ./write-up-img/fov_obs_ahead.png
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/916/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -39,9 +41,9 @@
 
 You're reading it!
 
-### 1. Notebook Analysis
-#### 1.1 Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
-##### 1.1.1 Identifying the navigable terrain and obstacle
+# 1. Notebook Analysis
+## 1.1 Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
+### 1.1.1 Identifying the navigable terrain and obstacle
 The test image taken by the rover camera is displayed below
 <p align='center'>
 ![alt text][image1]
@@ -70,7 +72,7 @@ The navigable terrain identified by `color_thresh()` and the obstacle image are
 <p align='center'>
 ![alt text][image2]
 </p>
-##### 1.1.2 Identifying rock samples
+### 1.1.2 Identifying rock samples
 Rock sample is a bit more tricky to be found because they are not as bright as the navigable terrain and not as dark as the other obstacle (mountain or big rocks in the middle of the map).
 <p align="center">
 ![alt text] [image6]
@@ -105,8 +107,8 @@ At this point, the only difference between the first and the second image is the
  <p align="center">
  ![alt text] [image5]
  </p>
-#### 1.2 Populate the `process_image()` function with the appropriate analysis steps to map pixels identifying navigable terrain, obstacles and rock samples into a worldmap.  Run `process_image()` on your test data using the `moviepy` functions provided to create video output of your result.
-##### 1.2.1 Define the destination for the perspective transform
+## 1.2 Populate the `process_image()` function with the appropriate analysis steps to map pixels identifying navigable terrain, obstacles and rock samples into a worldmap.  Run `process_image()` on your test data using the `moviepy` functions provided to create video output of your result.
+#### 1.2.1 Define the destination for the perspective transform
 The specification of the destination image is defined below
 ```
 dst_size = 5 # half size of destination square
@@ -118,7 +120,7 @@ destination = np.float32([[img.shape[1]/2 - dst_size, img.shape[0] - bottom_offs
               [img.shape[1]/2 - dst_size, img.shape[0] - 2*dst_size - bottom_offset],
               ]) # coordinate of 4 corners of the destination square
 ```
-##### 1.2.2 Apply the perspective transform
+### 1.2.2 Apply the perspective transform
 With the perspective transform function being defined as
 ```
 def perspect_transform(img, src, dst):
@@ -130,7 +132,7 @@ The perspective transform is implemented in the `process_image()` by calling
 ```
 warped = perspect_transform(img, source, destination)
 ```
-##### 1.2.3 Apply color threshold to find navigable terrain, obstacle, and rock sample
+### 1.2.3 Apply color threshold to find navigable terrain, obstacle, and rock sample
 The `process_image()` can call the `color_thresh()` defined in section 1.1.1 to get the navigable terrain out of the image resulted by warping the input image using perspective transform.
 ```
 nav_terrain = color_thresh(warped)
@@ -160,7 +162,7 @@ Rock samples is found by calling this function inside `process_image()`.
 ```
 rock_img_bin = rock_thresh(img)
 ```
-##### 1.2.4 Create the world map
+### 1.2.4 Create the world map
 To create the world map, first convert the coordinates of navigable terrain, obstacle, and rock samples to the rover frame.
 ```
 nav_xpix, nav_ypix = rover_coords(nav_terrain)
@@ -177,11 +179,41 @@ rock_xworld, rock_yworld = pix_to_world(rock_xpix, rock_ypix, data.xpos[data.cou
                                            data.yaw[data.count], 200, 10)
  ```
  In the `pix_to_world()` last two parameters (200 and 10) are respectively the side of the world map and the number of pixels in the destination image needed to represent 1 meter in real world (i.e. the side of the destination square).  
-### 2. Autonomous Navigation and Mapping
+# 2. Autonomous Navigation and Mapping
 
-#### 1. Fill in the `perception_step()` (at the bottom of the `perception.py` script) and `decision_step()` (in `decision.py`) functions in the autonomous mapping scripts and an explanation is provided in the writeup of how and why these functions were modified as they were.
+## 2.1. Fill in the `perception_step()` (at the bottom of the `perception.py` script) and `decision_step()` (in `decision.py`) functions in the autonomous mapping scripts and an explanation is provided in the writeup of how and why these functions were modified as they were.
+### 2.1.1 The `perception_step()`
+The role of the `perception_step()` is to
+* Create the world map
+* Provide the coordinate of navigable terrain with respect to the rover in the polar form for the `decision_step()`
 
+#### 2.1.1.1 Create the world map
+The process of creating the wolrd map in `perception_step()` is the same with the one used by the notebook (presented in section 1.2.4). To  find the navigable terrain, I first perform perspective transform (using `perspect_transform()`) on the camera image (coming under the name of `Rover.img`). After that, the warped image is fed into `color_thresh()` to yield the desired result. The obstacle is easily identified by complementing the navigable terrain image, while the rock samples is found by `rock_thresh(Rover.img)`. Finally, the pixel coordinates of navigable terrain, obstacle, and rock sample are transform to the coordinates in rover centric frame with `rover_coords()`, and then to the world frame with `pix_to_world()`.
 
+The perspective transform is accurate if the rover's roll and pitch angles are relatively near 0. Therefore, I check these two angles prior to updating the world map.
+```
+p_r_angles_threhold = 1 # deg, threshold of pitch & roll for perspect_transform to be considered accurate
+if (np.abs(Rover.pitch) < p_r_angles_threhold) or (np.abs(Rover.pitch - 360) < p_r_angles_threhold):
+    flag_pitch_ok = True
+else:
+    flag_pitch_ok = False
+if (np.abs(Rover.roll) < p_r_angles_threhold) or (np.abs(Rover.roll - 360) < p_r_angles_threhold):
+    flag_roll_ok = True
+else:
+    flag_roll_ok = False
+if flag_pitch_ok & flag_roll_ok:
+    # Update the world map
+```
+#### 2.1.1.2 Find the open part of rover camera field of view
+When the rover is at the open field (like in the figure below), it is alright to determine it steering angle by calculating the mean angles of every pixels.
+![alt text] [image7]
+However, if the rover is near a rock (an obstacle type rock, not the rock sample) this strategy does not perform well.
+![alt text] [image8]
+The figure above show that when there is an obstacle near the middle of the field of the view of rover camera, the steering direction calculated by the mean angles tend to point toward the obstacle.
+
+My idea for handling this is that the presence of an obstacle divide the rover 's camera field of into two (or more) parts, so I will choose the bigger (or the biggest) part and calculate mean angles of this part to get the good rover steering angle.
+
+The presence of the obstacle cause a suddenly fall in the distance coordinate of pixel near the obstacle. Plot the angles and distance coordinate      
 #### 2. Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
 
 **Note: running the simulator with different choices of resolution and graphics quality may produce different results, particularly on different machines!  Make a note of your simulator settings (resolution and graphics quality set on launch) and frames per second (FPS output to terminal by `drive_rover.py`) in your writeup when you submit the project so your reviewer can reproduce your results.**
