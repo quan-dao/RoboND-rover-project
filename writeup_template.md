@@ -39,9 +39,9 @@
 
 You're reading it!
 
-### Notebook Analysis
-#### 1. Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
-##### 1.1 Identifying the navigable terrain and obstacle
+### 1. Notebook Analysis
+#### 1.1 Run the functions provided in the notebook on test images (first with the test data provided, next on data you have recorded). Add/modify functions to allow for color selection of obstacles and rock samples.
+##### 1.1.1 Identifying the navigable terrain and obstacle
 The test image taken by the rover camera is displayed below
 <p align='center'>
 ![alt text][image1]
@@ -70,15 +70,14 @@ The navigable terrain identified by `color_thresh()` and the obstacle image are
 <p align='center'>
 ![alt text][image2]
 </p>
-##### 1.2 Identifying rock samples
+##### 1.1.2 Identifying rock samples
 Rock sample is a bit more tricky to be found because they are not as bright as the navigable terrain and not as dark as the other obstacle (mountain or big rocks in the middle of the map).
 <p align="center">
 ![alt text] [image6]
 </p>
 To handle this issue, I use the adaptive threshold. The main idea of this threshold is that the binary value of each pixel is defined by its RGB value compared to its neighbor.Converting the rock image to gray image and applying the adaptive threshold with the parameters below yield the picture on the left.
 ```
-gray_rock_img = cv2.cvtColor(rock_img, cv2.COLOR_RGB2GRAY) # convert color image
-#to gray image
+gray_rock_img = cv2.cvtColor(rock_img, cv2.COLOR_RGB2GRAY) # convert color image to gray image
 binary_img_1 = cv2.adaptiveThreshold(gray_rock_img, 255,cv2.ADAPTIVE_THRESH_MEAN_C,
                                     cv2.THRESH_BINARY, 255, 5)
 ```
@@ -106,11 +105,79 @@ At this point, the only difference between the first and the second image is the
  <p align="center">
  ![alt text] [image5]
  </p>
-#### 1. Populate the `process_image()` function with the appropriate analysis steps to map pixels identifying navigable terrain, obstacles and rock samples into a worldmap.  Run `process_image()` on your test data using the `moviepy` functions provided to create video output of your result.
-And another!
-
-![alt text][image2]
-### Autonomous Navigation and Mapping
+#### 1.2 Populate the `process_image()` function with the appropriate analysis steps to map pixels identifying navigable terrain, obstacles and rock samples into a worldmap.  Run `process_image()` on your test data using the `moviepy` functions provided to create video output of your result.
+##### 1.2.1 Define the destination for the perspective transform
+The specification of the destination image is defined below
+```
+dst_size = 5 # half size of destination square
+bottom_offset = 6
+source = np.float32([[14, 140], [301 ,140],[200, 96], [118, 96]]) # coordinate of 4 corners of the source square
+destination = np.float32([[img.shape[1]/2 - dst_size, img.shape[0] - bottom_offset],
+              [img.shape[1]/2 + dst_size, img.shape[0] - bottom_offset],
+              [img.shape[1]/2 + dst_size, img.shape[0] - 2*dst_size - bottom_offset],
+              [img.shape[1]/2 - dst_size, img.shape[0] - 2*dst_size - bottom_offset],
+              ]) # coordinate of 4 corners of the destination square
+```
+##### 1.2.2 Apply the perspective transform
+With the perspective transform function being defined as
+```
+def perspect_transform(img, src, dst):
+    M = cv2.getPerspectiveTransform(src, dst) # get transformation matrix
+    warped = cv2.warpPerspective(img, M, (img.shape[1], img.shape[0]))# keep same size as input image
+    return warped
+```
+The perspective transform is implemented in the `process_image()` by calling
+```
+warped = perspect_transform(img, source, destination)
+```
+##### 1.2.3 Apply color threshold to find navigable terrain, obstacle, and rock sample
+The `process_image()` can call the `color_thresh()` defined in section 1.1.1 to get the navigable terrain out of the image resulted by warping the input image using perspective transform.
+```
+nav_terrain = color_thresh(warped)
+```
+As mentioned in section 1.1.1, the obstacle image is the complement of the navigable terrain image.  
+```
+obstacle = cv2.bitwise_not(nav_terrain)
+```
+The process of finding rock samples in a color image presented in section 1.1.2 is sum up in `rock_thresh()`
+```
+def rock_thresh(img):
+    gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) # convert from color img to gray img
+    # apply adaptive threhold to isolate navigale terrain from rocks & mountain
+    binary_img = cv2.adaptiveThreshold(gray_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                     cv2.THRESH_BINARY, 255, 5)
+    binary_img = cv2.medianBlur(binary_img, 11) # smooth the binary image
+    # apply adaptive threhold again to isolate mountain from rocks & navigable terrain
+    mountain_img = cv2.adaptiveThreshold(gray_img, 255,
+                         cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 255, 20)
+    mountain_img = cv2.medianBlur(mountain_img, 11)
+    # Find the rock img
+    rock_img = cv2.bitwise_xor(binary_img, mountain_img)
+    rock_img = cv2.medianBlur(rock_img, 3)
+    return rock_img
+```
+Rock samples is found by calling this function inside `process_image()`.
+```
+rock_img_bin = rock_thresh(img)
+```
+##### 1.2.4 Create the world map
+To create the world map, first convert the coordinates of navigable terrain, obstacle, and rock samples to the rover frame.
+```
+nav_xpix, nav_ypix = rover_coords(nav_terrain)
+obs_xpix, obs_ypix = rover_coords(obstacle)
+rock_xpix, rock_ypix = rover_coords(rock_img_bin)
+```
+Then, convert these rover-based coordinates to world coordinates.
+ ```
+nav_xworld, nav_yworld = pix_to_world(nav_xpix, nav_ypix, data.xpos[data.count], data.ypos[data.count],
+                                           data.yaw[data.count], 200, 10)
+obs_xworld, obs_yworld = pix_to_world(obs_xpix, obs_ypix, data.xpos[data.count], data.ypos[data.count],
+                                           data.yaw[data.count], 200, 10)
+rock_xworld, rock_yworld = pix_to_world(rock_xpix, rock_ypix, data.xpos[data.count], data.ypos[data.count],
+                                           data.yaw[data.count], 200, 10)
+ ```
+ In the `pix_to_world()` last two parameters (200 and 10) are respectively the side of the world map and the number of pixels in the destination image needed to represent 1 meter in real world (i.e. the side of the destination square).  
+### 2. Autonomous Navigation and Mapping
 
 #### 1. Fill in the `perception_step()` (at the bottom of the `perception.py` script) and `decision_step()` (in `decision.py`) functions in the autonomous mapping scripts and an explanation is provided in the writeup of how and why these functions were modified as they were.
 
@@ -120,7 +187,3 @@ And another!
 **Note: running the simulator with different choices of resolution and graphics quality may produce different results, particularly on different machines!  Make a note of your simulator settings (resolution and graphics quality set on launch) and frames per second (FPS output to terminal by `drive_rover.py`) in your writeup when you submit the project so your reviewer can reproduce your results.**
 
 Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
-
-
-
-![alt text][image3]
