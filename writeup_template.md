@@ -348,8 +348,41 @@ The comparison between steering angle calculated based on the mean of whole and 
 
 ![alt text][image11]
 
-*Fig.11 Comparison of two methods of calculating steering angle*      
-#### 2. Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
+*Fig.11 Comparison of two methods of calculating steering angle*
+
+The whole process in this section in synthesized in the function `find_open_part()` (in the file `decision_step.py`) which takes the distance and angle coordinates of navigable terrain and return the those coordinate of the bigger (or open) part of the field of view, and an logic variable being true when there is at least an obstacle.
+```
+Rover.nav_dist, Rover.nav_angles, Rover.obst_in_view = find_open_part(dist, angles)
+```   
+
+### 2.1.2 The `decision_step()`
+The open part of the navigable terrain found by the `find_open_part()` function established in section 2.1.1.2 pays the way for the decision step. The underlying policy of `decision_step()` is the decision tree provided in the lecture. However, I add a modification to how the rover steering angle (`Rover.steer`) is calculated to make the rover a wall crawler. This means the rover moves in the way that one of its side, which is the left in my case is kept close to the wall (made up by the mountain in the simulation environment) as soon as it is possible (no obstacle in the field of view). This policy is implemented by altering the `Rover.steer` from the mean of angle coordinate (stored in `Rover.nav_angles`) of the whole navigable terrain's open part to the mean of angles that exceed the mean.
+```
+if not Rover.obst_in_view: # there is no obstacle
+    left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean] # mean of all angle to the left of the navigable terrain
+    Rover.steer = np.clip(np.mean(left_mean_ang * 180/np.pi), -15, 15)
+    # Check if there are any obstacle ahead if move with Rover.steer angle
+    dists_around_steer = np.abs(Rover.nav_angles - Rover.steer) < (2 * np.pi/180)
+    mean_dist_ahead = np.mean(Rover.nav_dists[dists_around_steer])
+    if mean_dist_ahead < Rover.min_dist_ahead_thres:
+        Rover.mode = 'stop'
+else: # there is obstacle
+    Rover.steer = np.clip(np.mean(Rover.nav_angles * 180/np.pi), -15, 15)
+```
+If there is obstacle in the field of view, the rover can not strictly follow the wall crawling policy because the policy can force the rover to hit the obstacle. In this case, the `Rover.steer` is kept equal to the mean of whole navigable terrain, or, more precisely, the open part of the navigable terrain produced by the `find_open_part()` function.
+
+When the rover reach the end of a small branch of the world map, the stop condition which is threshold of the numbered of pixels of the navigable terrain is triggered. Once completely stop, the rover needs do either a left or right four-wheel turn to spin around. Because of the wall crawler policy, the rover had turned left to reach the end, so it need to do a right four-wheel turn to get out without moving back to the same path it used to go in. This is the reason why I set
+```
+Rover.steer = -15
+```   
+to induce a four-wheel turn when the rover in the `stop` mode and `len(Rover.nav_angles) < Rover.go_forward`.
+
+In addition, when `stop` mode is triggered, I also make the brake process less aggressive by increasing the `Rover.brake` incrementally to `Rover.brake_set`.
+```
+if Rover.brake < Rover.brake_set:
+    Rover.brake += 0.3
+```    
+## 2.2 Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
 
 **Note: running the simulator with different choices of resolution and graphics quality may produce different results, particularly on different machines!  Make a note of your simulator settings (resolution and graphics quality set on launch) and frames per second (FPS output to terminal by `drive_rover.py`) in your writeup when you submit the project so your reviewer can reproduce your results.**
 
