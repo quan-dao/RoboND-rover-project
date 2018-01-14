@@ -50,7 +50,7 @@ The test image taken by the rover camera is displayed in Fig.1
 
 *Fig.1 Test image*
 
-Apparently, the navigable terrain is the brightest part of the original image. Hence, the navigable terrain can be identified by setting a lower threshold for RGB value of each pixel as the following.
+Apparently, the navigable terrain is the brightest part of the original image. Hence, the navigable terrain can be identified by setting a lower threshold for RGB value of each pixel as the following (this function is provided by the RoboND lecture).
 ~~~
 def color_thresh(img, rgb_thresh=(160, 160, 160)):
     # Create an array of zeros same xy size as img, but single channel
