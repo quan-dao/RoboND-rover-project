@@ -12,6 +12,9 @@
 [image9]: ./write-up-img/angles_vs_dist.png
 [image10]: ./write-up-img/extremum_ang_dist.png
 [image11]: ./write-up-img/old_new_steer_2.png
+[image12]: ./write-up-img/result_3.png
+[image13]: ./write-up-img/result_2.png
+[image14]: ./write-up-img/pipe_line_leak_1.png
 
 #### 2.1.1.2 Find the open part of rover camera field of view
 The distance and angle coordinate relative to the rover frame of navigable terrain pixels is found by
@@ -171,3 +174,35 @@ In addition, when `stop` mode is triggered, I also make the brake process less a
 if Rover.brake < Rover.brake_set:
     Rover.brake += 0.3
 ```
+## 2.2 Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
+
+**Note: The simulator setting is listed below
+* The screen resolution is 1024 x 768
+* Graphics quality is Good
+* Windows is checked
+* FPS output to terminal is in the range of 13 to 23**
+As shown in Fig.12, using the method of processing the image taken by the rover's camera and the wall crawler policy respectively presented in section 2.1.1 and section 2.1.2, the rover has successfully met the minimum requirement of the Search & Sample Return project after 60 seconds of operating.
+
+![alt text][image12]
+
+*Fig.12 The rover has mapped 40% of the environment with more than 70% fidelity*
+
+Let the rover operate for more than 600 seconds, it has mapped 98% of the environment (Fig.13).
+
+![alt text][image13]
+
+*Fig.13 The rover has mapped nearly the entire environment*
+
+As displayed in Fig.13, the rover also collected one rock sample. This has been done unintentionally because I have not integrated a strategy for approaching a rock sample (if there is one near the rover) into the wall crawler policy. What really happened is that the rover happened to reach the end of a map branch, so the `stop` mode is triggered and luckily there is a rock sample near by.
+
+The drawback of wall crawler policy is the rover can get stuck by the wall's foot when it move too close to the wall (Fig.14). To get out of this situation, the rover needs to perform a four-wheel turn. However, the `stop` mode is not triggered because the field of view is quite large; therefore, the rover keeps moving forward. This situation does not resolve on it own because the stuck of the rover make the field of view stay the same, so the steering angle also stay the same.
+
+![alt text][image14]
+
+*Fig.14 The rover get stuck by the foot of the mountain*
+
+I try to avoid this situation by adding a bias to wall crawler policy as following,
+```
+left_mean_ang = Rover.nav_angles[Rover.nav_angles > nav_angles_mean - bias_angle]
+```
+This bias can keep the rover a little bit further away from the wall, but it can not guarantee that the rover will not get stuck. Adding a mean to help the rover know if it is stuck is what I will do to upgrade the rover's program, in addition to the strategy of approaching the rock samples and how to bring them to the starting point.
