@@ -381,11 +381,12 @@ if Rover.brake < Rover.brake_set:
 ```    
 ## 2.2 Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
 
-**Note: The simulator setting is listed below
+### Note: The simulator setting is listed below
 * The screen resolution is 1024 x 768
 * Graphics quality is Good
 * Windows is checked
-* FPS output to terminal is in the range of 13 to 23**
+* FPS output to terminal is in the range of 13 to 23
+
 As shown in Fig.12, using the method of processing the image taken by the rover's camera and the wall crawler policy respectively presented in section 2.1.1 and section 2.1.2, the rover has successfully met the minimum requirement of the Search & Sample Return project after 60 seconds of operating.
 
 ![alt text][image12]
