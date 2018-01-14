@@ -76,12 +76,14 @@ obstacle = cv2.bitwise_not(nav_terrain)
 The navigable terrain identified by `color_thresh()` and the obstacle image are shown in Fig.2
 
 ![alt text][image2]
+
 *Fig.2 The navigable terrain image & obstacle image*
 
 ### 1.1.2 Identifying rock samples
 Rock sample is a bit more tricky to be found because they are not as bright as the navigable terrain and not as dark as the other obstacle (mountain or big rocks in the middle of the map) (shown in Fig.3).
 
 ![alt text][image3]
+
 *Fig.3 Color and gray scale image of rock sample*
 
 To handle this issue, I use the adaptive threshold. The main idea of this threshold is that the binary value of each pixel is defined by its RGB value compared to its neighbor.Converting the rock image to gray image and applying the adaptive threshold with the parameters below yield the sub figure on the left of Fig.4.
@@ -92,6 +94,7 @@ binary_img_1 = cv2.adaptiveThreshold(gray_rock_img, 255,cv2.ADAPTIVE_THRESH_MEAN
 ```
 
 ![alt text][image4]
+
 *Fig.4 1st adaptive threshold result*
 
 As can be seen, the rock sample in the picture on the left is not in a good shape due to noise. Eliminate this noise using the `cv2.medianBlur()` to get the smoothed image on the right.
@@ -106,6 +109,7 @@ mountain_img_smooth = cv2.medianBlur(mountain_img, 11)
 ```
 
 ![alt text][image5]
+
 *Fig.5 2nd adaptive threshold result*
 
 At this point, the only difference between Fig.4 and Fig.5 is the rock sample, so the rock sample (shown in Fig.6) can be found by XOR these two images.
@@ -226,11 +230,13 @@ steering_angle = np.mean(angles)
 ```
 
 ![alt text][image7]
+
 *Fig.7 Field of view with no obstacles*
 
 However, if the rover is near an obstacle this strategy does not perform well.
 
 ![alt text][image8]
+
 *Fig.8 Field of view with an obstacle in the middle*
 
 Fig.8 shows that when there is an obstacle near the middle of the rover camera's field of the view, the steering direction calculated by the mean angles tend to point toward the obstacle.
@@ -240,6 +246,7 @@ My idea for handling this is that an obstacle(s) divides the rover 's camera fie
 Plotting the pixels' angle versus pixels' distance coordinate results in Fig.9.
 
 ![alt text][image9]
+
 *Fig.9 Graph of angles vs dist*
 
 The sub figure on the left shows no clear pattern. But, when I sort the pixels angle coordinate (the `angles` array) and arrange the pixels distance coordinate  (the `dist` array) with the order of the `angle` array as following,
@@ -292,6 +299,7 @@ for i in range(1, n-1):
 The field of view profile and its extremums is shown in Fig.10.
 
 ![alt text][image10]
+
 *Fig.10 Field of view 's profile and its extremums*
 
 At this point, the hard work is done. The left over is to identify there is a fall or not, then choose the appropriate portion of the field of view. As mentioned in the previous paragraph, the fall is a large drop in extremums' distance coordinate. I am going to use this definition in the following code to detect the fall.
@@ -339,6 +347,7 @@ else:
 The comparison between steering angle calculated based on the mean of whole and the appropriate part of the field of view is displayed in Fig.11
 
 ![alt text][image11]
+
 *Fig.11 Comparison of two methods of calculating steering angle*      
 #### 2. Launching in autonomous mode your rover can navigate and map autonomously.  Explain your results and how you might improve them in your writeup.  
 
