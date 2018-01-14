@@ -143,16 +143,23 @@ def find_open_part(dist, angles):
         # Detect the discontinuous points, i.e. the rapid change in the value of local maxima
         maxima_threhold = 30 # condition detect a discontinuous
         cut_off_ang = [] # store the value of cut off angle
-        for i in range(1, len(maxima_dist_value)):
+        i = 1
+        while i < len(maxima_dist_value):
             if np.abs(maxima_dist_value[i] - maxima_dist_value[i - 1]) > maxima_threhold:
                 cut_off_ang.append(maxima_dist_base_ang[i])
+                i += 2
+            else:
+                i += 1
+        # for i in range(1, len(maxima_dist_value)):
+        #     if np.abs(maxima_dist_value[i] - maxima_dist_value[i - 1]) > maxima_threhold:
+        #         cut_off_ang.append(maxima_dist_base_ang[i])
         # Check the number of discont points, then choose the approriate part of the field
         n_cut_off = len(cut_off_ang)
         if n_cut_off == 1: # one distcont in the field of view
             flag_obst_in_view = True
             ind_sorted_angles = 0
             while ind_sorted_angles < len(sorted_angles):
-                if sorted_angles[ind_sorted_angles] < 0.5:
+                if sorted_angles[ind_sorted_angles] < cut_off_ang[0]:
                     ind_sorted_angles += 1
                 else:
                     break;
